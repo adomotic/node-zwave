@@ -1,0 +1,14 @@
+
+var d = {};
+
+d.GET_NODES = 0x02;
+d.APP_DATA = 0x04;
+d.DATA = 0x13;
+d.GET_NETWORK_ID = 0x20;
+d.GET_NODE_PROTOCOL = 0x41;
+d.GET_NODE_ABILITIES = 0x49;
+d.GET_NODE_SUPPORTED_CLASSES = 0x49;
+d.GET_NODE_INFO = 0x60;
+
+
+module.exports = d;
