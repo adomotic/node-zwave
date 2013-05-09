@@ -15,10 +15,6 @@ var messageHandler = {}; // Object to export
 var Buffer = require('buffer');
 var SerialPort = require("serialport").SerialPort;
 
-var serialPort = new SerialPort("/dev/tty.SLAB_USBtoUART", {
-  baudrate: 115200
-});
-
 function createCallbackId() {
   currentCallbackId++;
   if(currentCallbackId > 255) {
@@ -43,6 +39,15 @@ function runPendingRequest() {
     var request = pendingRequests.shift();
     messageHandler.sendMessage(request.message, request.responseType, request.listener);
   }
+}
+
+messageHandler.connect = function(serialPortAddress) {
+  if(typeof serialPortAddress == 'undefined') {
+    serialPortAddress = "/dev/tty.SLAB_USBtoUART"
+  }
+  serialPort = new SerialPort(serialPortAddress, {
+    baudrate: 115200
+  });
 }
 
 messageHandler.sendMessage = function(messageArray, responseType, listener) {
