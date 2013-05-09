@@ -2,13 +2,13 @@
   "name": "node-zwave",
   "version": "0.0.1",
   "description": "Control z-wave devices with JavaScript",
-  "main": "build/fixtures/node-zwave.js",
+  "main": "src/node-zwave.js",
   "scripts": {
     "test": "mocha ."
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/clintberry/node-zwave.git"
+    "url": "https://github.com/adomotic/node-zwave.git"
   },
   "keywords": [
     "z-wave",
@@ -23,7 +23,8 @@
   "readmeFilename": "README.md",
   "gitHead": "54eb3808258d8b2da247407479cde7cf4c0bdfe1",
   "dependencies": {
-    "moment": "~2.0.0"
+    "moment": "~2.0.0",
+    "q": "~0.9.3"
   },
   "devDependencies": {
     "grunt": "~0.4.1",
