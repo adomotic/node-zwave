@@ -1,6 +1,6 @@
 {
   "name": "node-zwave",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Control z-wave devices with JavaScript",
   "main": "src/node-zwave.js",
   "scripts": {
