@@ -1,5 +1,5 @@
 {
-  "name": "node-zwave",
+  "name": "zwave",
   "version": "0.0.2",
   "description": "Control z-wave devices with JavaScript",
   "main": "src/node-zwave.js",
@@ -27,7 +27,5 @@
     "q": "~0.9.3"
   },
   "devDependencies": {
-    "grunt": "~0.4.1",
-    "grunt-contrib-clean": "~0.4.1"
   }
 }

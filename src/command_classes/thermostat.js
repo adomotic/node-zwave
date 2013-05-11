@@ -1,6 +1,6 @@
 
 var fdefs = require('../functions/definitions');
-var gdefs = require('../globals');
+var globals = require('../globals');
 var iface = require('../interface');
 
 var thermostat = {};
@@ -109,11 +109,12 @@ thermostat.getSetpoint = function(nodeId) {
  * Set a thermostat temp
  * @param {Number} nodeId     The node ID of the thermostat
  * @param {Number} temp       The temperature you want it set to
- * @param {String} heatOrCool Is this the heat set point or the cool setpoint Accepts "heating" or "cooling"
+ * @param {String} heatingOrCooling Is this the heat set point or the cool setpoint Accepts "heating" or "cooling"
  * @param {String} [scale=F]      Celcius or Fahrenheit. Accepts "c" or "f" and defaults to "f"
  * @param {Function} [callback] Callback is optional. A promise is returned
  */
 thermostat.setSetpoint = function(nodeId, temperature, heatingOrCooling, scale, callback) {
+  console.log('Setting thermostat to ' + temperature);
   if(typeof scale === "Function") {
     callback = scale;
     scale = "f";
@@ -122,12 +123,18 @@ thermostat.setSetpoint = function(nodeId, temperature, heatingOrCooling, scale, 
     scale = "f";
   }
 
+
   var scaleByte = 0x09
   if(scale == 'c') {
     scaleByte = 0x08;
   }
 
-  var thermostatSet = [
+  var heatOrCool = 0x01;
+  if(heatingOrCooling == 'cooling') {
+    heatOrCool = 0x02;
+  }
+
+  var command = new Array(
     0x01, 
     0x0C,
     0x00,
@@ -136,21 +143,44 @@ thermostat.setSetpoint = function(nodeId, temperature, heatingOrCooling, scale, 
     0x06,
     SETPOINT,
     SET,
-    0x01,
+    heatOrCool,
     scaleByte,
     temperature,
     globals.AUTO_ACK
-  ];
-
-  var promise = iface.sendMessage(thermostatSet);
-  if(typeof callback = 'Function') {
+  );
+  
+  var promise = iface.sendMessage(command, listener);
+  if(typeof callback === 'Function') {
     promise.then(callback);
   }
   return promise;
 }
 
-thermostat.setMode = function() {
-
+thermostat.setMode = function(nodeId, mode, callback) {
+  console.log('Setting thermostat mode to ' + mode);
+  var modeBit = 0x01;
+  for(var i=0; i<MODE_OPTIONS.length; i++) {
+    if(mode.toLowerCase() == MODE_OPTIONS[i].toLowerCase()){
+      modeBit = i;
+    }
+  }
+  var command = [
+    0x01,
+    10,
+    0x00,
+    fdefs.DATA,
+    nodeId,
+    3,
+    MODE,
+    SET,
+    modeBit, //cool
+    globals.AUTO_ACK
+  ];
+  var promise = iface.sendMessage(command, listener);
+  if(typeof callback === 'Function') {
+    promise.then(callback);
+  }
+  return promise;
 }
 
 thermostat.setFanMode = function() {
@@ -165,8 +195,9 @@ thermostat.setOperatingMode = function() {
   Listener - handles responses from zwave controller
 *******************************************************************************/
 
-thermostat.listener = function(data) {
-
+function listener(data) {
+  console.log('Thermostat reponse received...');
+  console.log(data);
 }
 
 module.exports = thermostat;

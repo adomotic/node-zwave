@@ -1,7 +1,7 @@
 /**
 *  Interface for communicating with zwave controller
 */
-var G = require('./globals');
+var globals = require('./globals');
 var Q = require('q');
 var moment = require('moment');
 
@@ -12,7 +12,6 @@ var currentRequest = null; // The current request
 
 var serialPort = null;
 var messageHandler = {}; // Object to export
-var Buffer = require('buffer');
 var SerialPort = require("serialport").SerialPort;
 
 function createCallbackId() {
@@ -35,26 +34,54 @@ function generateChecksum(data) {
 }
 
 function runPendingRequest() {
+  console.log('Running pending request...');
+  console.log(pendingRequests);
   if(pendingRequests.length) {
     var request = pendingRequests.shift();
     messageHandler.sendMessage(request.message, request.responseType, request.listener);
   }
 }
 
-messageHandler.connect = function(serialPortAddress) {
-  if(typeof serialPortAddress == 'undefined') {
+messageHandler.connect = function(serialPortAddress, callback) {
+  var deferred = Q.defer();
+  if(typeof serialPortAddress === 'undefined') {
     serialPortAddress = "/dev/tty.SLAB_USBtoUART"
+  }
+  if(typeof serialPortAddress === 'function') {
+    callback = serialPortAddress;
+    serialPortAddress = "/dev/tty.SLAB_USBtoUART";
   }
   serialPort = new SerialPort(serialPortAddress, {
     baudrate: 115200
   });
+
+  serialPort.on("open", function () {
+    if(typeof callback == 'function') {
+      callback(serialPort);
+    }
+    console.log('Connected to zwave stick...');
+
+    serialPort.on('data', function(data) {
+      listener(data);
+    });
+    deferred.resolve(serialPort);
+  });
+  return deferred.promise;
 }
 
 messageHandler.sendMessage = function(messageArray, responseType, listener) {
+  console.log('Sending message to zwave controller');
+  console.log(messageArray);
+
+  if(typeof responseType === 'function') {
+    listener = responseType;
+    responseType = 'response';
+  }
   if(currentState !== 'ready') {
+    console.log('Adding request to pending requests...');
     pendingRequests.push({
       message: messageArray,
-      responseType: response,
+      responseType: responseType,
       listener: listener
     });
     return;
@@ -63,8 +90,7 @@ messageHandler.sendMessage = function(messageArray, responseType, listener) {
 
   var deferred = Q.defer();
   
-  var callbackId = createCallbackId();
-  messageArray.push(callbackId);
+  messageArray.push(createCallbackId());
   messageArray.push(generateChecksum(messageArray));
 
   currentRequest = {
@@ -73,15 +99,19 @@ messageHandler.sendMessage = function(messageArray, responseType, listener) {
     time: moment(),
     listener: listener
   }
-
-  SerialPort.write(new Buffer(messageArray));
-  return defer.promise();
+  var buffer = new Buffer(messageArray);
+  serialPort.write(buffer);
+  return deferred.promise;
 }
 
-messageHandler.listener = function(data) {
-  var hexArray = data.toString('hex')
-  console.log(hexArray);
-  if(hexArray[0] == g.ACK) {
+messageHandler.sendAck = function() {
+  serialPort.write(new Buffer([globals.ACK]));
+}
+
+function listener(data) {
+  console.log('Receiving data from zwave controller');
+  console.log(data);
+  if(data[0] == globals.ACK) {
     console.log('Received ACK for request');
     if(currentRequest.responseType == 'none') {
       currentRequest.defer.resolve(true);
@@ -94,19 +124,19 @@ messageHandler.listener = function(data) {
       currentState = 'pendingResponse';
     }
   }
-  if(currentState == 'pendingResponse') {
+  else if(currentState == 'pendingResponse') {
     console.log('Received response for request');
-    currentRequest.listener(hexArray);
+    messageHandler.sendAck();
+    currentRequest.listener(data);
     currentState = 'ready';
     currentRequest = null;
     runPendingRequest();
     return;
   }
   else {
+    messageHandler.sendAck();
     // Catch broadcasted events here...
   }
-
-  // Look for callback ID in the response and call appropriate function from the callbacks object
-  
 }
 
+module.exports = messageHandler;
