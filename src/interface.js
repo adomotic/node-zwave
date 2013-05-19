@@ -69,10 +69,7 @@ messageHandler.connect = function(serialPortAddress, callback) {
   return deferred.promise;
 }
 
-messageHandler.sendMessage = function(messageArray, responseType, listener) {
-  console.log('Sending message to zwave controller');
-  console.log(messageArray);
-
+messageHandler.sendMessage = function(messageArray, responseType, listener, useCallback) {
   if(typeof responseType === 'function') {
     listener = responseType;
     responseType = 'response';
@@ -90,8 +87,14 @@ messageHandler.sendMessage = function(messageArray, responseType, listener) {
 
   var deferred = Q.defer();
   
-  messageArray.push(createCallbackId());
+  if(useCallback) {
+    messageArray.push(createCallbackId());
+  }
   messageArray.push(generateChecksum(messageArray));
+  messageArray[1] = messageArray.length - 2;
+
+  console.log('Sending message to zwave controller');
+  console.log(messageArray);
 
   currentRequest = {
     responseType: responseType,
